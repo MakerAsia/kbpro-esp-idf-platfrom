@@ -122,7 +122,7 @@ const setConfig = (context) => {
   G.ELF_FILE = `${G.app_dir}/${G.board_name}.elf`;
   G.BIN_FILE = `${G.app_dir}/${G.board_name}.bin`;
   G.ARCHIVE_FILE = `${G.app_dir}/libmain.a`;
-  log.i(`process_dir=${G.process_dir}`);
+  log.i(`esp-idf-setConfig: process_dir=${G.process_dir}`);
 };
 
 function archiveProgram(plugins_sources) {
