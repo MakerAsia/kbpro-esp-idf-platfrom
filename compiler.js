@@ -32,11 +32,11 @@ function esptool() {
 
 const getName = (file) => path.basename(file).split(".")[0];
 
-async function readMac(portName) {
+async function readMac({portName, baudrate}) {
   var cmd = util.format(
       "\"%s\" --chip esp32 %s read_mac",
       esptool(),
-      "--port \"" + portName + "\" --baud 921600",
+      `--port "${portName}" --baud ${baudrate}`,
   );
   const {stdout, stderr} = await execPromise(ospath(cmd), {cwd: "./"});
   if (!stderr) {
@@ -152,7 +152,7 @@ function createBin(flash_mode = "dio", flash_freq = "40m", flash_size = "4MB") {
 
 function flash(port, baudrate, stdio, partition, flash_mode = "dio",
     flash_freq = "40m") {
-  baudrate = baudrate || 480600;
+  baudrate = baudrate || 115200;
   partition = partition || {
     "0x1000": `${platformLibDir}/bootloader.bin`,
     "0x8000": `${platformLibDir}/partitions_singleapp.bin`,
