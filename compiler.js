@@ -60,13 +60,13 @@ async function readMac({portName, baudrate}) {
   }
 }
 
-const compileFiles = function(sources, boardCppOptions, boardcflags,
-    plugins_includes_switch) {
+const compileFiles = function(sources, boardCppOptions, boardcflags, plugins_includes_switch) {
   return new Promise((resolve, reject) => {
     let cflags = G.cflags.join(" ") + " " + boardcflags.join(" ");
     let cppOptions = G.cpp_options.join(" ") + boardCppOptions.join(" ");
-    let inc_switch = plugins_includes_switch.map(obj => `-I"${obj}"`).
-    join(" ");
+    let inc_switch = plugins_includes_switch.map(obj => `-I"${obj}"`).join(" ");
+
+    let finalFiles = [];
 
     sources.forEach(async (file, idx, arr) => {
       let filename = getName(file);
@@ -74,22 +74,19 @@ const compileFiles = function(sources, boardCppOptions, boardcflags,
 
       let cmd = `"${G.COMPILER_CPP}" ${cppOptions} ${cflags} ${inc_switch} -c "${file}" -o "${fn_obj}"`;
       try {
-        const {stdout, stderr} = await execPromise(ospath(cmd),
-                                                   {cwd: G.process_dir});
+        const {stdout, stderr} = await execPromise(ospath(cmd), {cwd: G.process_dir});
         if (!stderr) {
           log.i(`compiling... ${path.basename(file)} ok.`);
-          // console.log(`${stdout}`);
         } else {
-          console.log(`compiling... ${path.basename(
-              file)} ok. (with warnings)`);
-          // console.log(`${stderr}`);
+          console.log(`compiling... ${path.basename(file)} ok. (with warnings)`);
+        }
+        finalFiles.push(fn_obj);
+        if(finalFiles.length === sources.length){ //compiled all file
+          resolve();
         }
       } catch (e) {
         log.i(`compiling... ${file} failed.`);
         reject(`compiling... ${file} failed.`);
-      }
-      if (idx === arr.length - 1) {
-        resolve();
       }
     });
   });
