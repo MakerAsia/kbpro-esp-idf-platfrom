@@ -85,8 +85,15 @@ const compileFiles = function(sources, boardCppOptions, boardcflags, plugins_inc
           resolve();
         }
       } catch (e) {
-        log.i(`compiling... ${file} failed.`);
-        reject(`compiling... ${file} failed.`);
+        //log.i(`compiling... ${file} failed.`);
+        //reject(`compiling... ${file} failed.`);
+        console.error(`[arduino-esp32].compiler.js catch something`, e.error);
+        console.error(`[arduino-esp32].compiler.js >>> `, e);
+        let _e = {
+          file: file,
+          error: e,
+        };
+        reject(_e);
       }
     });
   });
