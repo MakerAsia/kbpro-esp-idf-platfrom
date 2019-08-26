@@ -132,7 +132,7 @@ const setConfig = (context) => {
 function archiveProgram(plugins_sources) {
   log.i(`archiving... ${G.ARCHIVE_FILE} `);
   let obj_files = plugins_sources.map(
-      plugin => `${G.app_dir}/${getName(plugin)}.o`).join(" ");
+      plugin => `"${G.app_dir}/${getName(plugin)}.o"`).join(" ");
   var cmd = `"${G.COMPILER_AR}" cru "${G.ARCHIVE_FILE}" ${obj_files}`;
   return execPromise(ospath(cmd), {cwd: G.process_dir});
 }
