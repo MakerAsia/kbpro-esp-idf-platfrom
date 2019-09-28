@@ -2,10 +2,9 @@ const path = require("path");
 const util = require("util");
 const fs = require("fs");
 const execPromise = util.promisify(require("child_process").exec);
-const log = require("./log");
 
-var engine = Vue.prototype.$engine;
-
+const engine = Vue.prototype.$engine;
+const GB = Vue.prototype.$global;
 //---- setup dir and config ----//
 var platformName = "esp-idf";
 var platformDir = `${engine.util.platformDir}/${platformName}`;
@@ -14,6 +13,12 @@ var toolDir = `${platformDir}/tools`;
 var config = require(`${platformDir}/config`);
 
 var G = {};
+
+const log = msg => {
+  console.log(`[esp-idf] : ${msg}`);
+  GB.$emit("compile-log",`[esp-idf] : ${msg}`);
+};
+
 const ospath = function(p) {
   if (process.platform == "win32") {
     return p.replace(/\//g, "\\");
@@ -52,7 +57,7 @@ async function readMac({portName, baudrate}) {
             chlst[4] + ":" + chlst[5] + ":" + chlst[6]).trim();
       }
     }
-    log.i("reading board mac address (" + mac_addr + ")");
+    log("reading board mac address (" + mac_addr + ")");
     return {
       boardId: board_id,
       mac: mac_addr,
@@ -76,9 +81,9 @@ const compileFiles = function(sources, boardCppOptions, boardcflags, plugins_inc
       try {
         const {stdout, stderr} = await execPromise(ospath(cmd), {cwd: G.process_dir});
         if (!stderr) {
-          log.i(`compiling... ${path.basename(file)} ok.`);
+          log(`compiling... ${path.basename(file)} ok.`);
         } else {
-          console.log(`compiling... ${path.basename(file)} ok. (with warnings)`);
+          log(`compiling... ${path.basename(file)} ok. (with warnings)`);
         }
         finalFiles.push(fn_obj);
         if(finalFiles.length === sources.length){ //compiled all file
@@ -87,8 +92,8 @@ const compileFiles = function(sources, boardCppOptions, boardcflags, plugins_inc
       } catch (e) {
         //log.i(`compiling... ${file} failed.`);
         //reject(`compiling... ${file} failed.`);
-        console.error(`[arduino-esp32].compiler.js catch something`, e.error);
-        console.error(`[arduino-esp32].compiler.js >>> `, e);
+        log(`compiler.js catch something`, e);
+        //console.error(`compiler.js >>> `, e);
         let _e = {
           file: file,
           error: e,
@@ -126,11 +131,11 @@ const setConfig = (context) => {
   G.ELF_FILE = `${G.app_dir}/${G.board_name}.elf`;
   G.BIN_FILE = `${G.app_dir}/${G.board_name}.bin`;
   G.ARCHIVE_FILE = `${G.app_dir}/libmain.a`;
-  log.i(`esp-idf-setConfig: process_dir=${G.process_dir}`);
+  log(`esp-idf-setConfig: process_dir=${G.process_dir}`);
 };
 
 function archiveProgram(plugins_sources) {
-  log.i(`archiving... ${G.ARCHIVE_FILE} `);
+  log(`>>> Archiving ... ${G.ARCHIVE_FILE} `);
   let obj_files = plugins_sources.map(
       plugin => `"${G.app_dir}/${getName(plugin)}.o"`).join(" ");
   var cmd = `"${G.COMPILER_AR}" cru "${G.ARCHIVE_FILE}" ${obj_files}`;
@@ -138,7 +143,7 @@ function archiveProgram(plugins_sources) {
 }
 
 function linkObject(ldflags) {
-  log.i(`linking... ${G.ELF_FILE}`);
+  log(`>>> Linking... ${G.ELF_FILE}`);
   let flags = G.ldflags.join(" ") + " " + ldflags.join(" ");
   var cmd = `"${G.COMPILER_GCC}"` +
       ` -nostdlib -u call_user_start_cpu0 -Wl,--gc-sections -Wl,-static -Wl,` +
@@ -148,7 +153,7 @@ function linkObject(ldflags) {
 }
 
 function createBin(flash_mode = "dio", flash_freq = "40m", flash_size = "4MB") {
-  log.i(`creating bin image... ${G.BIN_FILE}`);
+  log(`>>> Creating bin image... ${G.BIN_FILE}`);
   let esptoolPath = esptool();
   let cmd = `"${esptool()}" --chip esp32 elf2image --flash_mode "${flash_mode}" --flash_freq "${flash_freq}" --flash_size "${flash_size}" -o "${G.BIN_FILE}" "${G.ELF_FILE}"`;
   return execPromise(ospath(cmd), {cwd: G.process_dir});
@@ -172,6 +177,7 @@ function flash(port, baudrate, stdio, partition, flash_mode = "dio",
       `--port "${port}" --baud ${baudrate}`,
       ...formatValue,
   );
+  log(`>>> Flashing ...`);
   return execPromise(ospath(flash_cmd), {
     cwd: G.process_dir,
     stdio,
